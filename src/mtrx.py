@@ -1,6 +1,6 @@
 import datetime
 import re
-from . import run_command
+from util import run_command
 import json
 
 class MTR(object):

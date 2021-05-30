@@ -1,7 +1,7 @@
 from collections import defaultdict
 from math import floor
 from datetime import datetime
-from utils import run_command, clean_split
+from util import run_command, clean_split
 import sys
 
 class Curl(object):
@@ -19,7 +19,6 @@ class Curl(object):
         command:
         req_hdr:
         resp_hdr:
-        akam_val:
         curl_conn_data:
         ssl_hs_data:
         conn_data:
@@ -32,7 +31,6 @@ class Curl(object):
         self.command = ''
         self.req_hdr = defaultdict(list)
         self.resp_hdr = defaultdict(list)
-        self.akam_val = {}
         self.curl_conn_data = {}
         self.ssl_hs_data = []
         self.conn_data = []
