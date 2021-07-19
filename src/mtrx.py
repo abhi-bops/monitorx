@@ -1,6 +1,6 @@
 import datetime
 import re
-from util import run_command
+#from util import run_command
 import json
 
 class MTR(object):
@@ -9,7 +9,7 @@ class MTR(object):
     If a custom mtr_command is passed, it needs to produce an output same as
     `mtr --report-wide -b ... `
     """
-    def __init__(self, destination=None, psize=1500, count=100, run_type='json'):
+    def __init__(self, destination=None, psize=1500, count=10, mtr_command=None):
         """
         Input:
         destination: str
@@ -24,8 +24,9 @@ class MTR(object):
         self.destination = destination
         self.psize = psize
         self.count = count
-        self.run_type = 'json' #format of mtr output
+        self.mtr_command = mtr_command #if custom mtr command is used
         self.mtr_info = {} #To store the parsed results
+        self.mtr_meta = {} #options passed to mtr, commands ...
         self.lossy_hop = None #To indicate the lossy hop
 
     def run(self):
@@ -39,20 +40,27 @@ class MTR(object):
     def run_mtr(self):
         #Get the current timestamp
         self.timestamp = datetime.datetime.now()
-        if self.run_type == 'json':
+        if not self.mtr_command:
             command = "mtr {} -p {} -c {} --report-wide -b -j".format(self.destination,
                                                                       self.psize,
                                                                       self.count)
+        else:
+            command = self.mtr_command
+        self.mtr_meta['command'] = command
         result = run_command(command)
-        self.mtr_results = result[0]
+        self.mtr_raw = result[0]
         
-    def parse_mtr(self):
-        if self.run_type == 'json':
-            json_data = json.loads(self.mtr_results)['report']
+    def parse_mtr(self, output_type='json'):
+        #If mtr's json output format is used
+        if output_type == 'json':
+            json_data = json.loads(self.mtr_raw)['report']
             self.mtr_results = {}
             for hop in json_data['hubs']:
                 self.mtr_results[hop['count']] = hop
             self.mtr_meta = json_data['mtr']
+        #Otherwise parsing the mtr data (options to mtr needs to be --report-wide -b)
+        else:
+            self.parse(self.mtr_raw)
         
     def get_lossy_hop(self):
         """method to get the attribute of lossy_hop"""
@@ -110,7 +118,7 @@ class MTR(object):
         timestamp_re = re.compile('Start: ')
         source_re = re.compile('HOST: ')
         hop_re = re.compile('[ ]+[0-9]{1,2}.|-- ')
-        self.mtr_results = []
+        self.mtr_results = {}
         for i in mtr_data.split('\n'):
             if timestamp_re.match(i):
                 #To address the offset issue
@@ -123,8 +131,7 @@ class MTR(object):
                 hop = i.replace('.|--', '')
                 hop_info = Hop(hop).get_hop_info()
                 hop_n = hop_info['count']
-                self.mtr_results.append(hop_info)
-                #self.mtr_info[hop_n] = hop_info                
+                self.mtr_results[hop_n] = hop_info
                 
 class Hop(object):
     """
@@ -154,3 +161,15 @@ class Hop(object):
         
     def get_hop_info(self):
         return self.hop_info
+
+    def get_ip_name(self, data):
+        #If we have only one element passed, then it is highly likely it's just IP without name
+        if len(data) == 1:
+            name = '-'
+            ip = data[0]
+        else:
+            name = data[0]
+            ip = data[1].strip('()')
+        return {'name' : name, 'ip': ip}
+                      
+
