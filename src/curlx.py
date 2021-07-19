@@ -7,7 +7,7 @@ import sys
 class Curl(object):
     curl_default_options = " -s -v -i -o /dev/null --trace-time -w 'curlout:%{speed_download}:%{time_namelookup}:%{time_connect}:%{time_appconnect}:%{time_pretransfer}:%{time_starttransfer}:%{time_total}' "
 
-    def __init__(self, hostname, custom_hdr=None):
+    def __init__(self, hostname, options='', custom_hdr=None, curl_command='curl'):
         """
         inputs:
         hostname: URL of the resource to fetch using curl.
@@ -36,10 +36,10 @@ class Curl(object):
         self.conn_data = []
         self.ssl_hs_raw = []
         self.ts = None
-        options = self.curl_default_options
+        options = ' ' + options + ' ' + self.curl_default_options
         if custom_hdr:
             options = options + custom_hdr
-        command = 'curl {}'.format(hostname)
+        command = '{} {}'.format(curl_command, hostname)
         command += options
         self.command = command
 
